@@ -10,8 +10,8 @@ import java.util.Vector;
 
 @Getter
 public enum KnockMap {
-    WHITE_BOXES(new Vector<Integer>() {{add(0);add(0);add(0);}}, "White Boxes"),
-    BLACK_BOXES(new Vector<Integer>() {{add(1000);add(0);add(0);}}, "Black Boxes");
+    WHITE_BOXES(new Vector<Integer>() {{add(0);add(-14);add(0);}}, "White Boxes"),
+    BLACK_BOXES(new Vector<Integer>() {{add(1000);add(-14);add(0);}}, "Black Boxes");
 
     private final Vector<Integer> loc;
     private final String name;
