@@ -1,17 +1,21 @@
 package lab.solarstorm.boblaborknockffa.map;
 
+import lab.solarstorm.boblaborknockffa.game.PlayerManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import java.util.Arrays;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 public final class Maps {
     private static KnockMap map = KnockMap.WHITE_BOXES;
+    private static int min = 15;
 
     public void switchMap(KnockMap newmap){
         map = newmap;
+        switchAllPlayer();
     }
 
     public static KnockMap switchMap() {
@@ -19,6 +23,7 @@ public final class Maps {
                 .filter(knockMap -> knockMap != map)
                 .toArray(KnockMap[]::new);
         map = availableMaps.length > 0 ? availableMaps[new Random().nextInt(availableMaps.length)] : map;
+        switchAllPlayer();
         return map;
     }
 
@@ -33,6 +38,23 @@ public final class Maps {
     private static void switchAllPlayer(){
         for(Player player : Bukkit.getOnlinePlayers()){
             player.teleport(map.getLocation());
+        }
+    }
+
+    public static int getMapSwitchTime(){return min;}
+
+    public static int getTimeToNextSwitch(){return PlayerManager.getTimer();}
+    public static int getTimeToNextSwitch(TimeUnit typ){
+        switch (typ){
+            case SECONDS:
+                PlayerManager.getTimer();
+                return PlayerManager.getTimer() / (20);
+            case MINUTES:
+                return PlayerManager.getTimer() / (20 * 60);
+            case HOURS:
+                return PlayerManager.getTimer() / (20 * 60 * 60);
+            default:
+                return PlayerManager.getTimer();
         }
     }
 }

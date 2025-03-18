@@ -1,6 +1,6 @@
 package lab.solarstorm.boblaborknockffa;
 
-import lab.solarstorm.boblaborknockffa.game.PlayerEvent;
+import lab.solarstorm.boblaborknockffa.game.PlayerManager;
 import lab.solarstorm.boblaborknockffa.game.PlayerInventory;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -36,7 +36,7 @@ public final class BobLaborKnockFFA extends JavaPlugin {
         createVanillaStyleTeam();
 
         PluginManager pluginManager = Bukkit.getPluginManager();
-        pluginManager.registerEvents(new PlayerEvent(), this);
+        pluginManager.registerEvents(new PlayerManager(), this);
         pluginManager.registerEvents(new PlayerInventory(), this);
 
     }
@@ -55,9 +55,9 @@ public final class BobLaborKnockFFA extends JavaPlugin {
         team = board.getTeam("playerbase");
         if (team == null) {
             team = board.registerNewTeam("playerbase");
-            team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.NEVER);
+            team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
             team.setOption(Team.Option.COLLISION_RULE, Team.OptionStatus.NEVER);
-            team.setAllowFriendlyFire(false);
+            team.setAllowFriendlyFire(true);
         }
     }
 }
