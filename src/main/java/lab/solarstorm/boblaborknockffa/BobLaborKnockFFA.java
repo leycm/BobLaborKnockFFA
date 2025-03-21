@@ -1,7 +1,7 @@
 package lab.solarstorm.boblaborknockffa;
 
-import lab.solarstorm.boblaborknockffa.game.PlayerManager;
-import lab.solarstorm.boblaborknockffa.game.PlayerInventory;
+import lab.solarstorm.boblaborknockffa.game.*;
+import lab.solarstorm.boblaborknockffa.token.TokenManager;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.Plugin;
@@ -21,11 +21,13 @@ public final class BobLaborKnockFFA extends JavaPlugin {
     public static Logger logger;
     public static CommandSender console;
 
+    public static String PREFIX = "§b§l[BobTony]§r§f ";
+
     public static Team team;
 
     @Override
     public void onEnable() {
-        // Plugin startup logic
+        ItemManager.initialize(getDataFolder());
         plugin = BobLaborKnockFFA.getPlugin(BobLaborKnockFFA.class);
         javaPlugin = JavaPlugin.getPlugin(BobLaborKnockFFA.class);
         instance = this;
@@ -34,16 +36,20 @@ public final class BobLaborKnockFFA extends JavaPlugin {
         console = Bukkit.getConsoleSender();
 
         createVanillaStyleTeam();
+        //getCommand("token").setExecutor(new TokenManager());
 
         PluginManager pluginManager = Bukkit.getPluginManager();
-        pluginManager.registerEvents(new PlayerManager(), this);
-        pluginManager.registerEvents(new PlayerInventory(), this);
+        pluginManager.registerEvents(new GameManager(), this);
+        pluginManager.registerEvents(new ItemManager(), this);
+        pluginManager.registerEvents(new InventoryClickListener(), this);
+        pluginManager.registerEvents(new InventoryLayoutEditor(), this);
+        pluginManager.registerEvents(new CPSListener(), this);
 
     }
 
     @Override
     public void onDisable() {
-        // Plugin shutdown logic
+        ItemManager.saveData();
     }
 
     private void createVanillaStyleTeam() {

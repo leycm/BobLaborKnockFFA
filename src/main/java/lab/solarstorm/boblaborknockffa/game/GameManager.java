@@ -1,6 +1,7 @@
 package lab.solarstorm.boblaborknockffa.game;
 
 import lab.solarstorm.boblaborknockffa.map.Maps;
+import lab.solarstorm.boblaborknockffa.token.TokenManager;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import org.bukkit.*;
@@ -9,19 +10,25 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.inventory.CraftItemEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scoreboard.DisplaySlot;
+import org.bukkit.scoreboard.Objective;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.ScoreboardManager;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-import static lab.solarstorm.boblaborknockffa.BobLaborKnockFFA.plugin;
-import static lab.solarstorm.boblaborknockffa.BobLaborKnockFFA.team;
+import static lab.solarstorm.boblaborknockffa.BobLaborKnockFFA.*;
 
-public final class PlayerManager implements Listener {
+public final class GameManager implements Listener {
 
     private static HashMap<Location, Integer> playerBlocksHash = new HashMap<>();
     private static int blockSec = 3;
@@ -29,22 +36,42 @@ public final class PlayerManager implements Listener {
     private static int timer = resetTimer();
     private static final HashMap<UUID, Player> lastDamager = new HashMap<>();
     private static final Random random = new Random();
+    private static Scoreboard scoreboard = null;
+    private static Objective objective = null;
 
-    public PlayerManager() {
+    public GameManager() {
         new BukkitRunnable() {
             @Override
             public void run() {
                 handelPlayerBlocks();
                 handelTimer();
+                CPSListener.updateCPS();
+                updateScoreboard();
             }
         }.runTaskTimer(plugin, 0L, 2L);
     }
 
     private static void handelTimer() {
         timer = timer - 1;
-        if(timer == 0){
+        //Bukkit.broadcast(Component.text(Maps.getTimeToNextSwitch(TimeUnit.MINUTES) + "min"));
+        //Bukkit.broadcast(Component.text(Maps.getTimeToNextSwitch(TimeUnit.SECONDS) + "sec"));
+        //Bukkit.broadcast(Component.text(Maps.getTimeToNextSwitch() + "knock"));
+        //Bukkit.broadcast(Component.text(Maps.getTimeToNextSwitch() * 2 + "ticks"));
+        if (timer == 0) {
             Maps.switchMap();
             resetTimer();
+        }
+
+        else if (timer == 60 * 10){
+            Bukkit.broadcast(Component.text(PREFIX + "§fMap wechselt in §e" + timer / 10 + "sek§f. Macht euch bereit auf die neue Map"));
+        }
+
+        else if (timer < 10 * 10 && timer > 3 * 10 && timer % 10 == 0) {
+            Bukkit.broadcast(Component.text(PREFIX + "§fMap restard in §e" + timer / 10 + "sek"));
+        }
+
+        else if (timer < 4 * 10 && timer % 10 == 0){
+            Bukkit.broadcast(Component.text(PREFIX + "§fMap restard in §c" + timer / 10 + "sek"));
         }
     }
 
@@ -80,8 +107,31 @@ public final class PlayerManager implements Listener {
     @EventHandler
     public static void onPlayerBlockPlace(BlockPlaceEvent event) {
         Player player = event.getPlayer();
-        if (!player.getGameMode().equals(GameMode.CREATIVE))
+
+        if (!player.getGameMode().equals(GameMode.CREATIVE)){
             playerBlocksHash.put(event.getBlock().getLocation(), blockSec * 10);
+            if(player.getLocation().getBlockY() > Maps.getLocation().getBlockY() - 5) event.setCancelled(true);}
+    }
+
+    @EventHandler
+    public static void onPlayerBlockBreak(BlockBreakEvent event) {
+        Player player = event.getPlayer();
+        if (!player.getGameMode().equals(GameMode.CREATIVE))
+            event.setCancelled(true);
+    }
+
+    @EventHandler
+    public static void onPlayerCraft(CraftItemEvent event) {
+        Player player = (Player) event.getWhoClicked();
+        if (!player.getGameMode().equals(GameMode.CREATIVE))
+            event.setCancelled(true);
+    }
+
+    @EventHandler
+    public static void onPlayerDrop(PlayerDropItemEvent event) {
+        Player player = event.getPlayer();
+        if (!player.getGameMode().equals(GameMode.CREATIVE))
+            event.setCancelled(true);
     }
 
     @EventHandler
@@ -133,7 +183,7 @@ public final class PlayerManager implements Listener {
             "§b%s §7wurde von §b%s §7zum menschlichen Creeper-Ersatz befördert",
             "§b%s §7dachte, §b%s §7sei ein Noob. Teuerster Irrtum ever",
             "§b%s §7erhielt von §b%s §7eine Gratis-Masterclass im Item-Droppen",
-            "§b%s §7wurde von §b%s §7zum Walking Loot-Container degradiert",
+            "§b%s §7wurde von §b%s §7zur Laufenden Loot-Container degradiert",
             "§b%s §7glaubte, §b%s §7sei ein Tutorial-Bot"
     };
 
@@ -166,8 +216,14 @@ public final class PlayerManager implements Listener {
         if(event.getDamageSource().getDamageType().equals(DamageType.FALL)){
             event.setCancelled(true); return;
         }
-        if (!(event.getEntity() instanceof Player)) return;
-        Player player = (Player) event.getEntity();
+
+        if(event.getDamageSource().getDamageType().equals(DamageType.ENDER_PEARL)){
+            event.setCancelled(true); return;
+        }
+
+        if (!(event.getEntity() instanceof Player player)) return;
+
+        if(player.getLocation().getBlockY() > Maps.getLocation().getBlockY() - 5) event.setCancelled(true);
 
         if (event instanceof EntityDamageByEntityEvent) {
             Entity damager = ((EntityDamageByEntityEvent) event).getDamager();
@@ -192,6 +248,7 @@ public final class PlayerManager implements Listener {
         player.teleport(Maps.getLocation());
         player.setHealth(20);
         player.setFoodLevel(20);
+        ItemManager.reloadPlayerInv(player);
     }
 
     private static void updateStatsAndBroadcast(Player player, EntityDamageEvent event) {
@@ -213,6 +270,7 @@ public final class PlayerManager implements Listener {
         victim.setStatistic(Statistic.DEATHS, victim.getStatistic(Statistic.DEATHS) + 1);
         broadcastRandomMessage(VOID_PUSHED_MESSAGES, victim.getName(), killer.getName());
         lastDamager.remove(victim.getUniqueId());
+        TokenManager.addPlayerKill(killer);
     }
 
     private static void handleDirectKill(Player victim, EntityDamageByEntityEvent event) {
@@ -221,6 +279,7 @@ public final class PlayerManager implements Listener {
             killer.setStatistic(Statistic.PLAYER_KILLS, killer.getStatistic(Statistic.PLAYER_KILLS) + 1);
             victim.setStatistic(Statistic.DEATHS, victim.getStatistic(Statistic.DEATHS) + 1);
             broadcastRandomMessage(DIRECT_KILL_MESSAGES, victim.getName(), killer.getName());
+            TokenManager.addPlayerKill(killer);
         }
     }
 
@@ -232,6 +291,91 @@ public final class PlayerManager implements Listener {
     private static void broadcastRandomMessage(String[] messages, String... args) {
         String rawMessage = messages[random.nextInt(messages.length)];
         Bukkit.broadcastMessage(String.format(rawMessage, args));
+    }
+
+    public static void updateScoreboard() {
+        for(Player player : Bukkit.getOnlinePlayers()){
+            updateScoreboard(player);
+        }
+    }
+
+    public static void updateScoreboard(Player player) {
+        Scoreboard playerScoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
+        Objective playerObjective = playerScoreboard.registerNewObjective("playerSidebar", "dummy", "  §b§lBobTonyFFA  ");
+        playerObjective.setDisplaySlot(DisplaySlot.SIDEBAR);
+
+        List<String> scoreboardText = new ArrayList<>();
+
+        int kills = player.getStatistic(Statistic.PLAYER_KILLS);
+        int deaths = player.getStatistic(Statistic.DEATHS);
+        int playtime = player.getStatistic(Statistic.TOTAL_WORLD_TIME);
+
+        scoreboardText.add("§0");
+        scoreboardText.add("§bToken");
+        scoreboardText.add("   §e" + TokenManager.getPlayerTokens(player) + "$");
+
+        scoreboardText.add("§1");
+        scoreboardText.add("§bStats");
+        scoreboardText.add("   §4\uD83D\uDDE1§f " + kills);
+        scoreboardText.add("   §e☠§f " + deaths);
+        scoreboardText.add("   §4K§f/§eD§f " + String.format("%.2f", (double) kills / (deaths + kills)));
+
+        scoreboardText.add("§2");
+        scoreboardText.add("§bMap Switch");
+        scoreboardText.add("   §b⌚§f " + convertTicksToTime(Maps.getTimeToNextSwitch() * 2));
+
+        scoreboardText.add("§4");
+
+        for (String line : scoreboardText) {
+            playerObjective.getScore(" " + line).setScore(scoreboardText.size() - scoreboardText.indexOf(line));
+        }
+
+        player.setScoreboard(playerScoreboard);
+    }
+
+    public static void createScoreboard() {
+        if (scoreboard != null) return;
+
+        ScoreboardManager manager = Bukkit.getScoreboardManager();
+        scoreboard = manager.getNewScoreboard();
+
+        objective = scoreboard.registerNewObjective("playerSidebar", "dummy", "  §b§lBobTonyFFA  ");
+        objective.setDisplaySlot(DisplaySlot.SIDEBAR);
+    }
+
+    public static String convertTicksToTime(long ticks) {
+        long ticksPerSecond = 20;
+        long ticksPerMinute = ticksPerSecond * 60;
+        long ticksPerHour = ticksPerMinute * 60;
+        long ticksPerDay = ticksPerHour * 24;
+
+        long days = ticks / ticksPerDay;
+        ticks %= ticksPerDay;
+
+        long hours = ticks / ticksPerHour;
+        ticks %= ticksPerHour;
+
+        long minutes = ticks / ticksPerMinute;
+        ticks %= ticksPerMinute;
+
+        long seconds = ticks / ticksPerSecond;
+
+        StringBuilder timeString = new StringBuilder();
+        if (days > 0) {
+            timeString.append(days).append("d ");
+        }
+        if (hours > 0) {
+            timeString.append(hours).append("h ");
+        }
+        if (minutes > 0 && days == 0) {
+            timeString.append(minutes).append("min ");
+        }
+        if (seconds > 0 && hours == 0 && days == 0) {
+            timeString.append(seconds).append("s ");
+        }
+
+        String result = timeString.toString().trim();
+        return result.isEmpty() ? "0s" : result;
     }
 
 }
