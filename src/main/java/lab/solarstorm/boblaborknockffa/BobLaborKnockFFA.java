@@ -36,7 +36,7 @@ public final class BobLaborKnockFFA extends JavaPlugin {
         console = Bukkit.getConsoleSender();
 
         createVanillaStyleTeam();
-        //getCommand("token").setExecutor(new TokenManager());
+        getCommand("token").setExecutor(new TokenManager());
 
         PluginManager pluginManager = Bukkit.getPluginManager();
         pluginManager.registerEvents(new GameManager(), this);
