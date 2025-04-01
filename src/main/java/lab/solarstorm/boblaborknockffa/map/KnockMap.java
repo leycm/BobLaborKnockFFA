@@ -11,10 +11,12 @@ import java.util.Vector;
 @Getter
 public enum KnockMap {
     WHITE_BOXES(new Vector<Integer>() {{add(-1000);add(-21);add(0);}}, "§fWhite Boxes", "LeyCM"),
-    HONEY(new Vector<Integer>() {{add(1000);add(-21);add(0);}}, "§6Honey Combs", "LeyCM"),
-    STEAM_PUNK(new Vector<Integer>() {{add(0);add(-21);add(0);}}, "§6Steam Punk", "LeyCM"),
-    BOB_LABOR(new Vector<Integer>() {{add(0);add(-15);add(1000);}}, "§2BobLabor", "LeyCM"),
-    BAKERY(new Vector<Integer>() {{add(0);add(-21);add(-1000);}}, "§cBakery", "LeyCM");
+    HONEY(new Vector<Integer>() {{add(1000);add(-21);add(0);}}, "§6Honey Combs", "Froggy"),
+    STEAM_PUNK(new Vector<Integer>() {{add(0);add(-21);add(0);}}, "§6Steam Punk", "Froggy"),
+    BOB_LABOR(new Vector<Integer>() {{add(0);add(-15);add(1000);}}, "§2BobLabor", "Froggy"),
+    BAKERY(new Vector<Integer>() {{add(0);add(-21);add(-1000);}}, "§cBakery", "Froggy"),
+    FISH(new Vector<Integer>() {{add(1000);add(-21);add(-1000);}}, "§bFish", "Froggy"),
+    SOLAR_SYSTEM(new Vector<Integer>() {{add(-1000);add(-21);add(-1000);}}, "§eSolar §9System", "Froggy");
 
     private final Vector<Integer> loc;
     private final String name;

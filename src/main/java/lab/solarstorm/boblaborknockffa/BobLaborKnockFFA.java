@@ -1,6 +1,9 @@
 package lab.solarstorm.boblaborknockffa;
 
 import lab.solarstorm.boblaborknockffa.game.*;
+import lab.solarstorm.boblaborknockffa.map.Maps;
+import lab.solarstorm.boblaborknockffa.minigame.CoinFlip;
+import lab.solarstorm.boblaborknockffa.token.KopfGeldManager;
 import lab.solarstorm.boblaborknockffa.token.TokenManager;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -37,6 +40,9 @@ public final class BobLaborKnockFFA extends JavaPlugin {
 
         createVanillaStyleTeam();
         getCommand("token").setExecutor(new TokenManager());
+        getCommand("skip").setExecutor(new Maps());
+        getCommand("coinflip").setExecutor(new CoinFlip());
+        getCommand("kopfgeld").setExecutor(new KopfGeldManager());
 
         PluginManager pluginManager = Bukkit.getPluginManager();
         pluginManager.registerEvents(new GameManager(), this);

@@ -39,6 +39,7 @@ public enum Skin {
     RABBIT_FOOT("§eRabbit Foot", true, Material.RABBIT_FOOT, 500),
     AMETHYST_SHARD("§eAmethyst Shard", true, Material.AMETHYST_SHARD, 500),
     CLOWN_FISH("§eClown Fish", true, Material.TROPICAL_FISH, 500),
+    PRISMARINE_SHARD("§ePrismarine Shard", true, Material.PRISMARINE_SHARD, 500),
 
     // Price 1000
     PUFFER_FISH("§4Puffer Fish", true, Material.PUFFERFISH, 1000),
@@ -124,7 +125,7 @@ public enum Skin {
     PRISMARINE_BLOCK("§5Prismarine Block", false, Material.PRISMARINE, 250),
     PRISMARINE_BRICKS("§5Prismarine Bricks", false, Material.PRISMARINE_BRICKS, 250),
     DARK_PRISMARINE("§5Dark Prismarine", false, Material.DARK_PRISMARINE, 250),
-    NETHER_BRICK("§5Nether Brick", false, Material.NETHER_BRICK, 250),
+    NETHER_BRICKS("§5Nether Brick", false, Material.NETHER_BRICKS, 250),
     RED_NETHER_BRICK("§5Red Nether Brick", false, Material.RED_NETHER_BRICKS, 250),
     MOSS_BLOCK("§5Moss Block", false, Material.MOSS_BLOCK, 250),
     BONE_BLOCK("§5Bone Block", false, Material.BONE_BLOCK, 250),

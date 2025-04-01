@@ -1,12 +1,13 @@
 package lab.solarstorm.boblaborknockffa.token;
 
+import lab.solarstorm.boblaborknockffa.game.ItemManager;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.Statistic;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.jetbrains.annotations.NotNull;
 
@@ -32,20 +33,24 @@ public final class TokenManager implements CommandExecutor, Listener {
         player.setStatistic(Statistic.USE_ITEM, org.bukkit.Material.SUNFLOWER, timeUsed + amount);
     }
 
+    public static int getKillStreak(Player player){
+        return killStreakMap.getOrDefault(player.getUniqueId(), 0);
+    }
+
     public static void addPlayerTokens(Player player, int amount) {
         if (amount <= 0) return;
         int timeCrafted = player.getStatistic(Statistic.CRAFT_ITEM, org.bukkit.Material.SUNFLOWER);
         player.setStatistic(Statistic.CRAFT_ITEM, org.bukkit.Material.SUNFLOWER, timeCrafted + amount);
     }
     public static void addPlayerKill(Player player) {
-        int killStreak = killStreakMap.get(player.getUniqueId());
+        int killStreak = killStreakMap.getOrDefault(player.getUniqueId(), 0);
         int amount = 1;
         if(killStreak / 5 != 0) {
-            amount = 1 * killStreak / 5;
+            amount = amount * (killStreak / 5 + 1);
         }
-        player.sendActionBar("+" + amount + "$     " + killStreak + " KillStreak    " + killStreak / 5 + "Bonus");
+        player.sendActionBar("§e+" + amount + "§6 Token     §f" + (killStreak + 1) + "§7 KillStreak    §a" + killStreak / 5 + "§2 Bonus");
         addPlayerTokens(player, amount);
-        addStreak(player, amount);
+        addStreak(player);
     }
 
     public static int getPlayerEarnedTokens(Player player) {
@@ -61,9 +66,24 @@ public final class TokenManager implements CommandExecutor, Listener {
     }
 
     public static void addStreak(Player player, int i) {
-        Integer killStreak = killStreakMap.get(player.getUniqueId());
+        Integer killStreak = killStreakMap.getOrDefault(player.getUniqueId() , 0);
         if(killStreak != null){
             killStreakMap.put(player.getUniqueId(), killStreak + 1);
+            handelStreakReward(player, killStreak + 1);
+        }
+    }
+
+    public static void handelStreakReward(Player player, int streak){
+        if (streak == 2) {
+            if (!player.getInventory().contains(Material.COBWEB))
+                player.getInventory().addItem(ItemManager.createCobweb());
+        }
+
+        if (streak % 5 == 0) {
+            if (!player.getInventory().contains(Material.ENDER_PEARL))
+                player.getInventory().addItem(ItemManager.createEnderPearl());
+            player.getInventory().addItem(ItemManager.createBuildingBlock(ItemManager.getPlayerSkinData(player.getUniqueId()).getEquippedBlockSkin()));
+            KopfGeldManager.addKopfgeldDirect(player,(streak / 5 - 1) * 10);
         }
     }
 

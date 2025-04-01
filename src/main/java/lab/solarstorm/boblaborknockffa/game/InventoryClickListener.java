@@ -1,9 +1,7 @@
 package lab.solarstorm.boblaborknockffa.game;
 
 import lab.solarstorm.boblaborknockffa.Skin;
-import lab.solarstorm.boblaborknockffa.game.ItemManager;
 import lab.solarstorm.boblaborknockffa.map.Maps;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -52,14 +50,16 @@ public class InventoryClickListener implements Listener {
         ItemStack clicked = event.getCurrentItem();
         String displayName = clicked.getItemMeta().getDisplayName();
 
-        if (clicked.getType() == Material.ARROW) {
+        //player.sendMessage(event.getSlot() + " - " + clicked + " - " + displayName);
+
+        if (event.getSlot() == 48 && event.getSlot() == 50) {
             int page = getCurrentPage(title);
-            if (event.getSlot() == 48) page--;
-            else if (event.getSlot() == 50) page++;
-            ItemManager.openBlockShopPage(player, page);
+            page = (event.getSlot() == 48) ? page - 1 : page + 1;
+            ItemManager.openStickShopPage(player, page);
         }
 
-        else if (displayName.equalsIgnoreCase("§cBack to Main Shop")) {
+
+        else if (event.getSlot() == 49) {
             ItemManager.openMainShopMenu(player);
         }
 
@@ -77,14 +77,15 @@ public class InventoryClickListener implements Listener {
         ItemStack clicked = event.getCurrentItem();
         String displayName = clicked.getItemMeta().getDisplayName();
 
-        if (clicked.getType() == Material.ARROW) {
+        //player.sendMessage(event.getSlot() + " - " + clicked + " - " + displayName);
+
+        if (event.getSlot() == 48 || event.getSlot() == 50) {
             int page = getCurrentPage(title);
-            if (event.getSlot() == 48) page--;
-            else if (event.getSlot() == 50) page++;
+            page = (event.getSlot() == 48) ? page - 1 : page + 1;
             ItemManager.openBlockShopPage(player, page);
         }
 
-        else if (displayName.equalsIgnoreCase("§cBack to Main Shop")) {
+        else if (event.getSlot() == 49) {
             ItemManager.openMainShopMenu(player);
         }
 

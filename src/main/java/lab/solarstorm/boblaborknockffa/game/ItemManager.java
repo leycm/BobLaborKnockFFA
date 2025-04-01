@@ -2,12 +2,12 @@ package lab.solarstorm.boblaborknockffa.game;
 
 import lab.solarstorm.boblaborknockffa.Skin;
 import lab.solarstorm.boblaborknockffa.token.TokenManager;
-import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -25,6 +25,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import static lab.solarstorm.boblaborknockffa.BobLaborKnockFFA.PREFIX;
 
 public final class ItemManager implements Listener {
     private static File dataFile;
@@ -163,6 +165,12 @@ public final class ItemManager implements Listener {
         PlayerSkinData skinData = playerSkinData.get(uuid);
         player.getInventory().clear();
 
+        ItemStack chestPlate = new ItemStack(Material.LEATHER_CHESTPLATE);
+        ItemMeta meta = chestPlate.getItemMeta();
+        meta.addEnchant(Enchantment.PROTECTION, 2, true);
+        chestPlate.setItemMeta(meta);
+        player.getInventory().setChestplate(chestPlate);
+
         for (Map.Entry<Integer, String> entry : skinData.getInventoryLayout().entrySet()) {
             int slot = entry.getKey();
             String itemType = entry.getValue();
@@ -241,7 +249,7 @@ public final class ItemManager implements Listener {
     }
 
     public static ItemStack createCobweb() {
-        ItemStack item = new ItemStack(Material.COBWEB, 3);
+        ItemStack item = new ItemStack(Material.COBWEB, 1);
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName("§eCobweb");
         List<String> lore = new ArrayList<>();
@@ -315,46 +323,74 @@ public final class ItemManager implements Listener {
     }
 
     public static void openStickShop(Player player) {
-        Inventory shopInventory = Bukkit.createInventory(null, 5 * 9, STICK_SHOP_NAME);
+        openStickShopPage(player, 0);
+    }
+
+    public static void openStickShopPage(Player player, int page) {
+        Inventory shopInventory = Bukkit.createInventory(null, 6 * 9, STICK_SHOP_NAME + " §7(Page " + (page + 1) + ")");
 
         UUID uuid = player.getUniqueId();
         PlayerSkinData skinData = playerSkinData.get(uuid);
 
-        int slot = 0;
+        List<Skin> stickSkins = new ArrayList<>();
         for (Skin skin : Skin.values()) {
             if (skin.isStick()) {
-                ItemStack skinItem = new ItemStack(skin.getMaterial());
-                ItemMeta meta = skinItem.getItemMeta();
-                meta.setDisplayName(skin.getName());
-
-                List<String> lore = new ArrayList<>();
-                lore.add("§7Cost: §6" + skin.getPrice() + " tokens");
-
-                if (skinData.ownsItem(skin)) {
-                    lore.add("§aOwned");
-
-                    if (skinData.getEquippedStickSkin() == skin) {
-                        lore.add("§bEquipped");
-                    } else {
-                        lore.add("§7Click to equip");
-                    }
-                } else {
-                    lore.add("§7Click to purchase");
-                }
-
-                meta.setLore(lore);
-                skinItem.setItemMeta(meta);
-
-                shopInventory.setItem(slot, skinItem);
-                slot++;
+                stickSkins.add(skin);
             }
+        }
+
+        int itemsPerPage = 45;
+        int startIndex = page * itemsPerPage;
+        int endIndex = Math.min(startIndex + itemsPerPage, stickSkins.size());
+
+        for (int i = startIndex; i < endIndex; i++) {
+            Skin skin = stickSkins.get(i);
+            int slot = i - startIndex;
+
+            ItemStack skinItem = new ItemStack(skin.getMaterial());
+            ItemMeta meta = skinItem.getItemMeta();
+            meta.setDisplayName(skin.getName());
+
+            List<String> lore = new ArrayList<>();
+            lore.add("§7Price: §6" + skin.getPrice() + " tokens");
+
+            if (skinData.ownsItem(skin)) {
+                lore.add("§aOwned");
+                if (skinData.getEquippedStickSkin() == skin) {
+                    lore.add("§bEquipped");
+                } else {
+                    lore.add("§7Click to equip");
+                }
+            } else {
+                lore.add("§7Click to purchase");
+            }
+
+            meta.setLore(lore);
+            skinItem.setItemMeta(meta);
+            shopInventory.setItem(slot, skinItem);
+        }
+
+        if (page > 0) {
+            ItemStack prevPage = new ItemStack(Material.ARROW);
+            ItemMeta meta = prevPage.getItemMeta();
+            meta.setDisplayName("§aPrevious Page");
+            prevPage.setItemMeta(meta);
+            shopInventory.setItem(48, prevPage);
         }
 
         ItemStack backButton = new ItemStack(Material.BARRIER);
         ItemMeta backMeta = backButton.getItemMeta();
         backMeta.setDisplayName("§cBack to Main Shop");
         backButton.setItemMeta(backMeta);
-        shopInventory.setItem(40, backButton);
+        shopInventory.setItem(49, backButton);
+
+        if (endIndex < stickSkins.size()) {
+            ItemStack nextPage = new ItemStack(Material.ARROW);
+            ItemMeta meta = nextPage.getItemMeta();
+            meta.setDisplayName("§aNext Page");
+            nextPage.setItemMeta(meta);
+            shopInventory.setItem(50, nextPage);
+        }
 
         player.openInventory(shopInventory);
     }
@@ -364,7 +400,7 @@ public final class ItemManager implements Listener {
     }
 
     public static void openBlockShopPage(Player player, int page) {
-        Inventory shopInventory = Bukkit.createInventory(null, 6 * 9, BLOCK_SHOP_NAME + " §7(Seite " + (page + 1) + ")");
+        Inventory shopInventory = Bukkit.createInventory(null, 6 * 9, BLOCK_SHOP_NAME + " §7(Page " + (page + 1) + ")");
 
         UUID uuid = player.getUniqueId();
         PlayerSkinData skinData = playerSkinData.get(uuid);
@@ -389,17 +425,17 @@ public final class ItemManager implements Listener {
             meta.setDisplayName(skin.getName());
 
             List<String> lore = new ArrayList<>();
-            lore.add("§7Preis: §6" + skin.getPrice() + " Tokens");
+            lore.add("§7Price: §6" + skin.getPrice() + " tokens");
 
             if (skinData.ownsItem(skin)) {
-                lore.add("§aFreigeschaltet");
+                lore.add("§aOwned");
                 if (skinData.getEquippedBlockSkin() == skin) {
-                    lore.add("§bAktiviert");
+                    lore.add("§bEquipped");
                 } else {
-                    lore.add("§7Klick zum Aktivieren");
+                    lore.add("§7Click to equip");
                 }
             } else {
-                lore.add("§7Klick zum Kaufen");
+                lore.add("§7Click to purchase");
             }
 
             meta.setLore(lore);
@@ -410,21 +446,21 @@ public final class ItemManager implements Listener {
         if (page > 0) {
             ItemStack prevPage = new ItemStack(Material.ARROW);
             ItemMeta meta = prevPage.getItemMeta();
-            meta.setDisplayName("§aVorherige Seite");
+            meta.setDisplayName("§aPrevious Page");
             prevPage.setItemMeta(meta);
             shopInventory.setItem(48, prevPage);
         }
 
         ItemStack backButton = new ItemStack(Material.BARRIER);
         ItemMeta backMeta = backButton.getItemMeta();
-        backMeta.setDisplayName("§cZurück zum Shop");
+        backMeta.setDisplayName("§cBack to Main Shop");
         backButton.setItemMeta(backMeta);
         shopInventory.setItem(49, backButton);
 
         if (endIndex < blockSkins.size()) {
             ItemStack nextPage = new ItemStack(Material.ARROW);
             ItemMeta meta = nextPage.getItemMeta();
-            meta.setDisplayName("§aNächste Seite");
+            meta.setDisplayName("§aNext Page");
             nextPage.setItemMeta(meta);
             shopInventory.setItem(50, nextPage);
         }
@@ -443,10 +479,10 @@ public final class ItemManager implements Listener {
         if (skinData.ownsItem(skin)) {
             if (skin.isStick()) {
                 skinData.setEquippedStickSkin(skin);
-                player.sendMessage("§aYou've equipped the " + skin.name() + " skin!");
+                player.sendMessage(PREFIX + "§aYou've equipped the " + skin.name() + " skin!");
             } else {
                 skinData.setEquippedBlockSkin(skin);
-                player.sendMessage("§aYou've equipped the " + skin.name() + " skin!");
+                player.sendMessage(PREFIX + "§aYou've equipped the " + skin.name() + " skin!");
             }
 
             saveData();
@@ -467,7 +503,7 @@ public final class ItemManager implements Listener {
                 skinData.setEquippedBlockSkin(skin);
             }
 
-            player.sendMessage("§aYou've purchased and equipped the " + skin.name() + " skin!");
+            player.sendMessage(PREFIX +  "§aYou've purchased and equipped the " + skin.name() + " skin!");
 
             saveData();
             reloadPlayerInv(player);
@@ -479,7 +515,7 @@ public final class ItemManager implements Listener {
                 openBlockShop(player);
             }
         } else {
-            player.sendMessage("§cYou don't have enough tokens to purchase this skin!");
+            player.sendMessage(PREFIX + "§cYou don't have enough tokens to purchase this skin!");
         }
     }
 
@@ -504,7 +540,7 @@ public final class ItemManager implements Listener {
             saveData();
             reloadPlayerInv(player);
 
-            player.sendMessage("§aYour inventory layout has been updated!");
+            player.sendMessage(PREFIX +  "§aYour inventory layout has been updated!");
         }
     }
 

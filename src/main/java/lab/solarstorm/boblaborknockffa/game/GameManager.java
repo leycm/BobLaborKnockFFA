@@ -1,11 +1,14 @@
 package lab.solarstorm.boblaborknockffa.game;
 
 import lab.solarstorm.boblaborknockffa.map.Maps;
+import lab.solarstorm.boblaborknockffa.minigame.CoinFlip;
+import lab.solarstorm.boblaborknockffa.token.KopfGeldManager;
 import lab.solarstorm.boblaborknockffa.token.TokenManager;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import org.bukkit.*;
 import org.bukkit.damage.DamageType;
+import org.bukkit.entity.EnderPearl;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -14,24 +17,32 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.FoodLevelChangeEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
+import org.bukkit.util.Vector;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 import static lab.solarstorm.boblaborknockffa.BobLaborKnockFFA.*;
 
 public final class GameManager implements Listener {
 
     private static HashMap<Location, Integer> playerBlocksHash = new HashMap<>();
-    private static int blockSec = 3;
+    private static final int blockSec = 3;
     @Getter
     private static int timer = resetTimer();
     private static final HashMap<UUID, Player> lastDamager = new HashMap<>();
@@ -47,16 +58,19 @@ public final class GameManager implements Listener {
                 handelTimer();
                 CPSListener.updateCPS();
                 updateScoreboard();
+                CoinFlip.handleRequestTimeouts();
             }
         }.runTaskTimer(plugin, 0L, 2L);
     }
 
     private static void handelTimer() {
         timer = timer - 1;
+
         //Bukkit.broadcast(Component.text(Maps.getTimeToNextSwitch(TimeUnit.MINUTES) + "min"));
         //Bukkit.broadcast(Component.text(Maps.getTimeToNextSwitch(TimeUnit.SECONDS) + "sec"));
         //Bukkit.broadcast(Component.text(Maps.getTimeToNextSwitch() + "knock"));
         //Bukkit.broadcast(Component.text(Maps.getTimeToNextSwitch() * 2 + "ticks"));
+
         if (timer == 0) {
             Maps.switchMap();
             resetTimer();
@@ -75,7 +89,7 @@ public final class GameManager implements Listener {
         }
     }
 
-    private static int resetTimer(){return timer = Maps.getMapSwitchTime() * 60 * 20;}
+    private static int resetTimer(){return timer = Maps.getMapSwitchTime() * 60 * 10;}
 
     private static void handelPlayerBlocks() {
         Iterator<Map.Entry<Location, Integer>> iterator = playerBlocksHash.entrySet().iterator();
@@ -141,6 +155,47 @@ public final class GameManager implements Listener {
         team.addEntry(player.getName());
     }
 
+    @EventHandler
+    public static void onHungerChange(FoodLevelChangeEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+        event.setCancelled(true);
+    }
+
+    @EventHandler
+    public static void onHungerChange(PlayerItemConsumeEvent event) {
+        event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onInventoryClose(InventoryCloseEvent event) {
+        Player player = (Player) event.getPlayer();
+        ItemStack cursorItem = player.getItemOnCursor();
+
+        if (!cursorItem.getType().isAir()) {
+            player.setItemOnCursor(null);
+        }
+    }
+
+    @EventHandler
+    public void onItemDamage(PlayerItemDamageEvent event) {
+        event.setCancelled(true);
+    }
+
+    @EventHandler
+    public static void onPlayerEnderPearlHit(ProjectileHitEvent event) {
+        if (!(event.getEntity() instanceof EnderPearl pearl)) return;
+
+        Player player = (Player) pearl.getShooter();
+
+        if (event.getHitBlock().getLocation().getY() > Maps.getLocation().getBlockY() - 5) {
+            event.setCancelled(true);
+            player.getInventory().addItem(ItemManager.createEnderPearl());
+            pearl.remove();
+        } else {
+            player.setVelocity(new Vector( 0, 0, 0));
+        }
+    }
+
     private static final String[] VOID_PUSHED_MESSAGES = {
             "§b%s §7wurde von §b%s §7ins Void geschubst.",
             "§b%s §7ist durch §b%s §7ins Nichts gestürzt.",
@@ -162,7 +217,11 @@ public final class GameManager implements Listener {
             "§b%s §7vertraute §b%s§7s Tipp 'Elytren braucht man hier nicht!'",
             "§b%s §7wollte mit §b%s §7zur Mondbasis. Leider ohne Rakete",
             "§b%s §7testete §b%s§7s neu erfundenes 'Abgrund-Teleportgerät'",
-            "§b%s §7bekam von §b%s §7eine kostenlose Void-Cruise geschenkt"
+            "§b%s §7bekam von §b%s §7eine kostenlose Void-Cruise geschenkt",
+
+            "§b%s §7wurde von §b%s §7mit bayerischer Effizienz ins Void befördert - 'Mia san mia im Abgrund!'",
+            "§b%s §7erhielt von §b%s §7eine bayerische Variante von 'Flugangst' - direkt ins Void!",
+            "§b%s §7wurde von §b%s §7zum 'Void-Wiesn-Besuch' überredet - ohne Rückflugticket!"
     };
 
     private static final String[] DIRECT_KILL_MESSAGES = {
@@ -184,7 +243,11 @@ public final class GameManager implements Listener {
             "§b%s §7dachte, §b%s §7sei ein Noob. Teuerster Irrtum ever",
             "§b%s §7erhielt von §b%s §7eine Gratis-Masterclass im Item-Droppen",
             "§b%s §7wurde von §b%s §7zur Laufenden Loot-Container degradiert",
-            "§b%s §7glaubte, §b%s §7sei ein Tutorial-Bot"
+            "§b%s §7glaubte, §b%s §7sei ein Tutorial-Bot",
+
+            "§b%s §7wurde von §b%s §7erledigt - 'Des war a klarer Fall fürn Freistaat!'",
+            "§b%s §7erhielt von §b%s §7eine bayerische Standpauke - mit tödlichem Ausgang",
+            "§b%s §7wurde von §b%s §7abserviert - 'So geht bayerische Politik!'"
     };
 
     private static final String[] VOID_SUICIDE_MESSAGES = {
@@ -208,7 +271,11 @@ public final class GameManager implements Listener {
             "§b%s §7wollte testen, ob das Void Endermen-Safe ist",
             "§b%s §7ging auf 'Freefall-Date' mit sich selbst",
             "§b%s §7dachte, der Abgrund wäre nur ein Render-Distanz-Bug",
-            "§b%s §7suchte nach Herobrine. Fand stattdessen das Void"
+            "§b%s §7suchte nach Herobrine. Fand stattdessen das Void",
+
+            "§b%s §7verwechselte das Void mit dem Münchner Oktoberfest-Zelt - 'O'zapft is... im Abgrund!'",
+            "§b%s §7suchte das bayerische Reinheitsgebot im Void - und fand nur den Tod",
+            "§b%s §7dachte, das Void wäre der neue Freistaat Bayern - 'Leider falsch gedacht!'"
     };
 
     @EventHandler
@@ -249,6 +316,28 @@ public final class GameManager implements Listener {
         player.setHealth(20);
         player.setFoodLevel(20);
         ItemManager.reloadPlayerInv(player);
+
+        List<EnderPearl> enderPearls = getActiveEnderPearls(player);
+
+        for (EnderPearl enderPearl : enderPearls)
+            enderPearl.remove();
+    }
+
+    private static List<EnderPearl> getActiveEnderPearls(Player player) {
+        List<EnderPearl> enderPearls = new ArrayList<>();
+
+        for (Entity entity : player.getWorld().getEntities()) {
+            if (entity instanceof EnderPearl enderPearl) {
+                Player shooter = (Player) enderPearl.getShooter();
+
+                assert shooter != null;
+
+                if (shooter.getUniqueId().equals(player.getUniqueId()))
+                    enderPearls.add(enderPearl);
+            }
+        }
+
+        return enderPearls;
     }
 
     private static void updateStatsAndBroadcast(Player player, EntityDamageEvent event) {
@@ -271,6 +360,15 @@ public final class GameManager implements Listener {
         broadcastRandomMessage(VOID_PUSHED_MESSAGES, victim.getName(), killer.getName());
         lastDamager.remove(victim.getUniqueId());
         TokenManager.addPlayerKill(killer);
+        TokenManager.breakStreak(victim);
+        killer.addPotionEffect(new PotionEffect(
+                PotionEffectType.REGENERATION,
+                100,
+                0,
+                true,
+                true
+        ));
+        KopfGeldManager.claimKopfgeld(killer, victim);
     }
 
     private static void handleDirectKill(Player victim, EntityDamageByEntityEvent event) {
@@ -280,12 +378,22 @@ public final class GameManager implements Listener {
             victim.setStatistic(Statistic.DEATHS, victim.getStatistic(Statistic.DEATHS) + 1);
             broadcastRandomMessage(DIRECT_KILL_MESSAGES, victim.getName(), killer.getName());
             TokenManager.addPlayerKill(killer);
+            TokenManager.breakStreak(victim);
+            killer.addPotionEffect(new PotionEffect(
+                    PotionEffectType.REGENERATION,
+                    100,
+                    0,
+                    true,
+                    true
+            ));
+            KopfGeldManager.claimKopfgeld(killer, victim);
         }
     }
 
     private static void handleVoidSuicide(Player player) {
         player.setStatistic(Statistic.DEATHS, player.getStatistic(Statistic.DEATHS) + 1);
         broadcastRandomMessage(VOID_SUICIDE_MESSAGES, player.getName());
+        TokenManager.breakStreak(player);
     }
 
     private static void broadcastRandomMessage(String[] messages, String... args) {
@@ -312,17 +420,20 @@ public final class GameManager implements Listener {
 
         scoreboardText.add("§0");
         scoreboardText.add("§bToken");
-        scoreboardText.add("   §e" + TokenManager.getPlayerTokens(player) + "$");
+        scoreboardText.add("   §e" + TokenManager.getPlayerTokens(player));
 
         scoreboardText.add("§1");
         scoreboardText.add("§bStats");
         scoreboardText.add("   §4\uD83D\uDDE1§f " + kills);
         scoreboardText.add("   §e☠§f " + deaths);
-        scoreboardText.add("   §4K§f/§eD§f " + String.format("%.2f", (double) kills / (deaths + kills)));
+        scoreboardText.add("   §4K§f/§eD§f " + String.format("%.2f", (double) kills / deaths));
+        scoreboardText.add("   §6Streak " + TokenManager.getKillStreak(player));
 
         scoreboardText.add("§2");
         scoreboardText.add("§bMap Switch");
         scoreboardText.add("   §b⌚§f " + convertTicksToTime(Maps.getTimeToNextSwitch() * 2));
+        scoreboardText.add("   §b⚐§f " + Maps.getMap().getName());
+        scoreboardText.add("     §7by §f" + Maps.getMap().getBuilder());
 
         scoreboardText.add("§4");
 

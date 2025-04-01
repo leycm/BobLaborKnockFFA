@@ -245,6 +245,6 @@ public class InventoryLayoutEditor implements Listener {
         ItemManager.saveData();
         ItemManager.reloadPlayerInv(player);
 
-        player.sendMessage(PREFIX +"§aYour inventory layout has been updated!");
+        player.sendMessage(PREFIX + "§aYour inventory layout has been updated!");
     }
 }
